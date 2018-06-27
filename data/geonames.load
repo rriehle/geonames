@@ -1,0 +1,44 @@
+LOAD ARCHIVE
+   FROM http://download.geonames.org/export/zip/US.zip
+   INTO postgresql:///pgloader
+
+   BEFORE LOAD DO
+     $$ drop table if exists geonames; $$,
+     $$ create table geonames
+       (
+          country_code char(2) not null,
+          postal_code  varchar(20) not null,
+          place name   varchar(180),
+          admin name1  varchar(100),
+          admin code1  varchar(20),
+          admin name2  varchar(100),
+          admin code2  varchar(20),
+          admin name3  varchar(100),
+          admin code3  varchar(20),
+          latitude     real,
+          longitude    real,
+          accuracy     integer
+       );
+     $$
+
+   LOAD FIXED
+        FROM FILENAME MATCHING ~/US.txt/
+             WITH ENCODING latin1
+             (
+                country_code from   0 for  2,
+                postal_code  from   3 for  9,
+                place name   from   4 for  5,
+                admin name1  from   9 for 64 [trim right whitespace],
+                admin code1  from  73 for  9,
+                admin name2  from  82 for  9,
+                admin code2  from  91 for 14,
+                admin name3  from 105 for 14,
+                admin code3  from 119 for 14,
+                latitude     from 131 for 14,
+                longitude    from 143 for 10,
+                accuracy     from 153 for 11
+             )
+        INTO postgresql:///pgloader?geonames
+             (
+            usps, fips, fips_code, "LocationName"
+             );
